@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Student Dashboard</title>
+
+<!-- Bootstrap -->
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+
+<!-- Font Awesome -->
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+:root{
+  --sidebar-width:240px;
+  --primary:#0d6efd;
+  --primary-soft:rgba(13,110,253,.15);
+  --bg-soft:#f4f6f9;
+  --shadow:0 12px 30px rgba(0,0,0,.08);
+  --radius:16px;
+  --transition:.35s ease;
+}
+
+body{
+  background:var(--bg-soft);
+  font-family:Inter,system-ui;
+  overflow-x:hidden;
+}
+
+/* Sidebar */
+#sidebar{
+  position:fixed;
+  left:0;top:0;
+  width:var(--sidebar-width);
+  height:100vh;
+  background:#fff;
+  box-shadow:var(--shadow);
+  z-index:1000;
+  transition:.4s;
+}
+
+.sidebar-heading{
+  font-weight:700;
+}
+
+.list-group-item{
+  border:none;
+  cursor:pointer;
+  transition:var(--transition);
+}
+
+.list-group-item.active{
+  background:var(--primary);
+  color:#fff;
+}
+
+.list-group-item:hover{
+  background:var(--primary-soft);
+}
+
+/* Content */
+#page-content-wrapper{
+  margin-left:var(--sidebar-width);
+  padding:1.5rem;
+}
+
+@media(max-width:991px){
+  #sidebar{transform:translateX(-100%)}
+  #sidebar.show{transform:translateX(0)}
+  #page-content-wrapper{margin-left:0}
+}
+
+/* Cards */
+.card{
+  border:none;
+  border-radius:var(--radius);
+  box-shadow:var(--shadow);
+  transition:var(--transition);
+}
+.card:hover{transform:translateY(-5px)}
+
+.kpi-icon{
+  width:50px;height:50px;
+  border-radius:12px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  color:#fff;
+}
+
+/* Dark Mode */
+body.dark{
+  background:#121212;
+  color:#f1f1f1;
+}
+body.dark #sidebar,
+body.dark .card{
+  background:#1e1e1e;
+  color:#f1f1f1;
+}
+body.dark .list-group-item{color:#ddd}
+</style>
+</head>
+
+<body>
+
+<!-- SIDEBAR -->
+<div id="sidebar">
+  <div class="sidebar-heading p-4 text-primary">🎓 STUDENT PANEL</div>
+
+  <div class="list-group list-group-flush">
+    <button class="list-group-item active" data-section="dashboard">Dashboard</button>
+    <button class="list-group-item" data-section="students">Students</button>
+    <button class="list-group-item" data-section="attendance">Attendance</button>
+    <button class="list-group-item" data-section="reports">Reports</button>
+  </div>
+
+  <div class="p-3">
+    <label class="small text-muted">Theme Color</label>
+    <select id="themeColor" class="form-select form-select-sm">
+      <option value="#0d6efd">Blue</option>
+      <option value="#198754">Green</option>
+      <option value="#dc3545">Red</option>
+      <option value="#6f42c1">Purple</option>
+      <option value="#fd7e14">Orange</option>
+    </select>
+
+    <button id="themeToggle" class="btn btn-outline-primary btn-sm mt-3 w-100">
+      🌙 Toggle Dark Mode
+    </button>
+  </div>
+</div>
+
+<!-- CONTENT -->
+<div id="page-content-wrapper">
+
+<button id="menuToggle" class="btn btn-primary d-lg-none mb-3">☰ Menu</button>
+
+<!-- DASHBOARD -->
+<div id="dashboardSection">
+  <div class="row g-4 mb-4">
+    <div class="col-md-3">
+      <div class="card p-3 d-flex flex-row align-items-center">
+        <div class="kpi-icon bg-primary"><i class="fa fa-users"></i></div>
+        <div class="ms-3">
+          <small>Total Students</small>
+          <h3 id="totalStudents">0</h3>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-3">
+      <div class="card p-3 d-flex flex-row align-items-center">
+        <div class="kpi-icon bg-success"><i class="fa fa-chart-line"></i></div>
+        <div class="ms-3">
+          <small>Avg Attendance</small>
+          <h3 id="avgAttendance">0%</h3>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-3">
+      <div class="card p-3 d-flex flex-row align-items-center">
+        <div class="kpi-icon bg-warning"><i class="fa fa-bell"></i></div>
+        <div class="ms-3">
+          <small>Alerts</small>
+          <h3 id="alertCount">0</h3>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-3">
+      <div class="card p-3 d-flex flex-row align-items-center">
+        <div class="kpi-icon bg-danger"><i class="fa fa-user-xmark"></i></div>
+        <div class="ms-3">
+          <small>Below 75%</small>
+          <h3 id="lowAttendance">0</h3>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-4">
+    <div class="col-md-6">
+      <div class="card p-3">
+        <h6 class="text-muted">Branch-wise Attendance</h6>
+        <canvas id="branchChart"></canvas>
+      </div>
+    </div>
+    <div class="col-md-6">
+      <div class="card p-3">
+        <h6 class="text-muted">Semester Performance</h6>
+        <canvas id="semesterChart"></canvas>
+        <div class="card mt-4">
+  <div class="card-body">
+    <h5 class="card-title">📊 Attendance Overview</h5>
+    <canvas id="overviewChart" height="120"></canvas>
+  </div>
+</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- STUDENTS -->
+<div id="studentsSection" class="d-none mt-5">
+  <h4>👨‍🎓 Student List</h4>
+  <table class="table table-hover mt-3">
+    <thead>
+      <tr>
+        <th>Name</th><th>Branch</th><th>Semester</th><th>Attendance</th><th>Status</th>
+      </tr>
+    </thead>
+    <tbody id="studentTable"></tbody>
+  </table>
+</div>
+
+<!-- ATTENDANCE -->
+<div id="attendanceSection" class="d-none mt-5">
+  <h4>📊 Attendance Overview</h4>
+
+  <div class="row g-4 mt-2">
+    <div class="col-md-6">
+      <div class="card p-3">
+        <h6 class="text-muted">Attendance Distribution</h6>
+        <canvas id="attendanceChart"></canvas>
+      </div>
+    </div>
+
+    <div class="col-md-6">
+      <div class="card p-3">
+        <h6 class="text-muted">Low Attendance Students</h6>
+        <ul id="lowList" class="list-group list-group-flush mt-2"></ul>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- REPORTS -->
+<div id="reportsSection" class="d-none mt-5">
+  <h4>📑 Attendance Reports</h4>
+
+  <div class="card p-3 mt-3">
+    <table class="table table-hover">
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Branch</th>
+          <th>Attendance</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody id="reportTable"></tbody>
+    </table>
+  </div>
+</div>
+
+
+<script>
+const students = [
+  {name:"Amit Kumar", branch:"CSE", sem:5, attendance:82},
+  {name:"Priya Singh", branch:"CSE", sem:5, attendance:68},
+  {name:"Rahul Das", branch:"ECE", sem:5, attendance:75},
+  {name:"Sneha Patra", branch:"ME", sem:5, attendance:88},
+  {name:"Rohit Sharma", branch:"ECE", sem:5, attendance:70},
+
+  {name:"Ananya Mishra", branch:"CSE", sem:5, attendance:91},
+  {name:"Sourav Behera", branch:"ME", sem:5, attendance:64},
+  {name:"Pooja Verma", branch:"ECE", sem:5, attendance:79},
+  {name:"Kunal Gupta", branch:"CSE", sem:5, attendance:85},
+  {name:"Neha Rani", branch:"ME", sem:5, attendance:73},
+
+  {name:"Abhishek Nayak", branch:"ECE", sem:5, attendance:88},
+  {name:"Ritika Panda", branch:"CSE", sem:5, attendance:92},
+  {name:"Manish Sahoo", branch:"ME", sem:5, attendance:69},
+  {name:"Swati Patil", branch:"ECE", sem:5, attendance:81},
+  {name:"Arjun Mehta", branch:"CSE", sem:5, attendance:76},
+
+  {name:"Deepak Yadav", branch:"ME", sem:5, attendance:67},
+  {name:"Isha Kulkarni", branch:"CSE", sem:5, attendance:89},
+  {name:"Vikas Singh", branch:"ECE", sem:5, attendance:72},
+  {name:"Nikita Joshi", branch:"ME", sem:5, attendance:94},
+  {name:"Harsh Agarwal", branch:"CSE", sem:5, attendance:78}
+];
+
+const sections={
+dashboard:dashboardSection,
+students:studentsSection,
+attendance:attendanceSection,
+reports:reportsSection
+};
+
+document.querySelectorAll(".list-group-item").forEach(b=>{
+b.onclick=()=>{
+document.querySelectorAll(".list-group-item").forEach(x=>x.classList.remove("active"));
+b.classList.add("active");
+Object.values(sections).forEach(s=>s.classList.add("d-none"));
+sections[b.dataset.section].classList.remove("d-none");
+if(b.dataset.section==="students")renderStudents();
+};
+});
+
+menuToggle.onclick=()=>sidebar.classList.toggle("show");
+
+function renderStudents(){
+studentTable.innerHTML="";
+students.forEach(s=>{
+studentTable.innerHTML+=`
+<tr>
+<td>${s.name}</td>
+<td>${s.branch}</td>
+<td>${s.sem}</td>
+<td>${s.attendance}%</td>
+<td><span class="badge ${s.attendance<75?"bg-danger":"bg-success"}">
+${s.attendance<75?"Low":"Good"}
+</span></td>
+</tr>`;
+});
+}
+
+totalStudents.innerText=students.length;
+avgAttendance.innerText=Math.round(students.reduce((a,b)=>a+b.attendance,0)/students.length)+"%";
+lowAttendance.innerText=students.filter(s=>s.attendance<75).length;
+alertCount.innerText=lowAttendance.innerText;
+
+new Chart(branchChart,{
+type:"bar",
+data:{labels:["CSE","ECE","ME"],datasets:[{data:[75,72,88]}]},
+options:{plugins:{legend:{display:false}}}
+});
+
+new Chart(semesterChart,{
+type:"line",
+data:{labels:["S1","S2","S3","S4","S5"],datasets:[{data:[68,72,75,78,82],tension:.4}]}
+});
+
+themeColor.onchange=e=>{
+document.documentElement.style.setProperty("--primary",e.target.value);
+};
+
+themeToggle.onclick=()=>document.body.classList.toggle("dark");
+</script>
+
+</body>
+</html>
